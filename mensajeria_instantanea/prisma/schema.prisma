@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id Int @id @default(autoincrement())
+  nombreUsuario String @unique
+  email String? @unique
+  contrasena String?
+  // tabla intermedia para relación con chats
+  chats UsuarioChats[]
+  // relación con mensajes
+  mensajes Mensajes[]
+  // relación con notificaciones
+  notificaciones Notificaciones[]
+  // relación con archivos
+  fotoPerfil Archivos? @relation("fotoPerfil")
+}
+
+model Chats {
+  id Int @id @default(autoincrement())
+  nombre String
+  fechaCreacion DateTime @default(now())
+  // esta hay que revisarla
+  participantes UsuarioChats[]
+  // 
+  mensajes Mensajes[]
+}
+
+model Mensajes {
+  id Int @id @default(autoincrement())
+  contenido String
+  fechaEnvio DateTime @default(now())
+  editado Boolean @default(false)
+  eliminado Boolean @default(false)
+  contenidoOriginal String?
+  // relación con usuario
+  autorId Int
+  autor Usuario @relation(fields: [autorId], references: [id])
+  // relación con chats
+  chatId Int
+  chat Chats @relation(fields: [chatId], references: [id])
+  // relación con archivos (REVISARRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR)
+  multimedia MensajesArchivos[]
+  // relación con notificaciones
+  notificaciones Notificaciones[]
+}
+
+enum TipoArchivo {
+  IMAGEN
+  VIDEO
+  DOCUMENTO
+  AUDIO
+}
+
+model Archivos {
+  id Int @id @default(autoincrement())
+  tipoArchivo TipoArchivo?
+  nombreArchivo String
+  rutaArchivo String
+  tamaño Decimal?
+  // relación con usuarios
+  fotoPerfilId Int? @unique
+  fotoPerfil Usuario? @relation(fields: [fotoPerfilId], references: [id],"fotoPerfil")
+  // relación con mensajes (REVISARRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR)
+  mensajes MensajesArchivos[]
+}
+
+model Notificaciones {
+  id Int @id @default(autoincrement())
+  leido Boolean? @default(false)
+  entregado Boolean @default(false)
+  // relación con usuarios
+  usuarioId Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  // relación con mensajes de aqui saco contenido y fecha de creación
+  mensajeId Int?
+  mensaje Mensajes? @relation(fields: [mensajeId], references: [id])
+}
+
+// tabla intermedia para relación muchos a muchos entre usuarios y chats
+model UsuarioChats {
+  // tabla para usuario
+  usuarioId Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  // tabla para chat
+  chatId Int
+  chat Chats @relation(fields: [chatId], references: [id])
+  @@id([usuarioId, chatId])
+}
+
+// tabla intermedia para relación mentre mensajes y archivos multimedia
+model MensajesArchivos {
+  mensajeId Int
+  mensaje Mensajes @relation(fields: [mensajeId], references: [id])
+
+  archivoId Int
+  archivo Archivos @relation(fields: [archivoId], references: [id])
+
+  @@id([mensajeId, archivoId])
+}
