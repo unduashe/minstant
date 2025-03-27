@@ -32,9 +32,10 @@ model Chats {
   id Int @id @default(autoincrement())
   nombre String
   fechaCreacion DateTime @default(now())
-  // esta hay que revisarla
+  publico Boolean @default(false)
+  // relación con usuarios chats
   participantes UsuarioChats[]
-  // 
+  // relación con mensajes
   mensajes Mensajes[]
 }
 
