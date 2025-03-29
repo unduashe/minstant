@@ -20,7 +20,7 @@ function ChatPage(){
                 const data = await response.json();
                 console.log(data, "quiiiiiiiii");
                 
-                setChat(data[0]);
+                setChat(data);
             } catch (err) {
                 console.log(err)
         };
@@ -30,7 +30,7 @@ function ChatPage(){
     }, [params.id]);
 
     function test(){
-        console.log(chat[0].fechaCreacion)
+        console.log(chat.fechaCreacion)
     }
 
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -47,7 +47,13 @@ function ChatPage(){
     return(
         <div className="flex-1 w-full relative">
             <h1>
-                Bienvenido a {chat.nombre} creado el {chat.fechaCreacion}
+                Bienvenido a {chat.nombre} creado el {chat.fechaCreacion}, participantes:
+                {(chat.participantes || []).length < 1 
+                ? 0
+                : <ul>
+                    {chat.participantes.map((participante) => <li key={participante.nombreUsuario}>{participante.nombreUsuario}</li>)}
+                </ul>
+            }
             </h1>
                 
             <button className='w-3xl h-3' onClick={test}>aqui</button>
