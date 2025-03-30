@@ -21,15 +21,26 @@ export async function GET(request:Request) {
                     take: usuariosPorPagina
                 }),
                 prisma.usuario.count()
-            ])
-            return NextResponse.json({
+            ]);
+            interface GuardiaUsuarios {
+                id: number,
+                nombreUsuario: string
+            };
+            interface GuardiaRespuestaUsuariosPagina {
+                datos: GuardiaUsuarios[],
+                paginacion: {
+                    paginaActual: number,
+                    totalPaginas: number
+                }
+            };
+            return NextResponse.json<GuardiaRespuestaUsuariosPagina>({
                 datos: usuarios,
                 paginacion: {
                     paginaActual: paginaParam,
                     totalPaginas: Math.ceil(pagina / usuariosPorPagina)
                 }
-            })
-        }
+            });
+        };
         let usuarioEspecifico = await prisma.usuario.findUnique({
             where: {
                 nombreUsuario: usuarioParam
@@ -39,9 +50,14 @@ export async function GET(request:Request) {
                 nombreUsuario: true,
                 email: true
             }
-        })
-        if (!usuarioEspecifico) return NextResponse.json({error: 'usuario no encontrado'}, {status: 404})
-        return NextResponse.json(usuarioEspecifico);
+        });
+        if (!usuarioEspecifico) return NextResponse.json({error: 'usuario no encontrado'}, {status: 404});
+        interface GuardiaUsuarioEspecifico {
+            id: number,
+            nombreUsuario: string,
+            email: string | null
+        }
+        return NextResponse.json<GuardiaUsuarioEspecifico>(usuarioEspecifico);
     } catch (error) {
         return NextResponse.json(
             {error: 'Error al obtener usuarios'},
