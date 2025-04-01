@@ -52,7 +52,7 @@ model Mensajes {
   // relación con chats
   chatId Int
   chat Chats @relation(fields: [chatId], references: [id])
-  // relación con archivos (REVISARRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR)
+  // relación con archivos
   multimedia MensajesArchivos[]
   // relación con notificaciones
   notificaciones Notificaciones[]
@@ -74,7 +74,7 @@ model Archivos {
   // relación con usuarios
   fotoPerfilId Int? @unique
   fotoPerfil Usuario? @relation(fields: [fotoPerfilId], references: [id],"fotoPerfil")
-  // relación con mensajes (REVISARRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR)
+  // relación con mensajes
   mensajes MensajesArchivos[]
 }
 
