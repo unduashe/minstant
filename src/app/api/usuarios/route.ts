@@ -64,6 +64,39 @@ export async function GET(request:Request) {
             {status: 500}
         )
     } finally {
-        await prisma.$disconnect()
+        await prisma.$disconnect();
+    }
+}
+
+export async function POST(request:Request) {
+    try {
+        const datosPeticion = await request.json()
+        const nombreUsuario = datosPeticion.nombreUsuario
+        if (!nombreUsuario || typeof nombreUsuario !== "string") return NextResponse.json(
+            {error: 'nombreUsuario es un dato obligatorio y debe ser un elemento de texto'},
+            {status: 400}
+        );
+        const usuarioExiste = await prisma.usuario.findUnique({
+            where: {
+                nombreUsuario: nombreUsuario
+            }
+        });
+        if (usuarioExiste) return NextResponse.json(
+            {error: 'usuario ya existe'},
+            {status: 400}
+        );
+        const result = await prisma.usuario.create({
+            data: {
+                nombreUsuario: nombreUsuario
+            }
+        })
+        return NextResponse.json({msg: `usuario ${nombreUsuario} creado`, status: 201})
+    } catch (error) {
+        return NextResponse.json(
+            {error: 'Error al agregar usuario'},
+            {status: 500}
+        )
+    } finally {
+        await prisma.$disconnect();
     }
 }
