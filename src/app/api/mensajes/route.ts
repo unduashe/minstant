@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { MensajeEsquema } from '../../../../lib/esquemas';
+import { moderadorContenido } from '../../../../lib/moderacion';
 
 const prisma = new PrismaClient();
 
@@ -90,6 +91,10 @@ export async function POST(request:Request) {
         // validación de que el usuario puede escribir en el chat
         const esParticipante = chat.participantes.some((participante) => participante.usuarioId === autorId);
         if (!esParticipante && !chat.publico) return NextResponse.json({error: 'No tienes acceso para participar en el chat'}, {status: 403});
+        // validación de que el contenido del mensaje no sea tóxico
+        const resultadoModeracion = await moderadorContenido(mensaje.contenido);
+        if (resultadoModeracion.esToxico) return NextResponse.json({error: 'El contenido del mensaje es inapropiado'}, {status: 403})
+        // creación del mensaje
         const nuevoMensaje = await prisma.mensajes.create({
             data: {
                 contenido: mensaje.contenido,
