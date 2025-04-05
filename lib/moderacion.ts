@@ -1,4 +1,6 @@
-export async function moderadorContenido(texto:string) {
+import { GuardiaRespuestaModeracion } from "./guardiasTipo";
+
+export async function moderadorContenido(texto:string):Promise<GuardiaRespuestaModeracion> {
     const API_KEY = process.env.API_KEY_PERSPECTIVE;
     if (!API_KEY) throw new Error('Falta por definir API_KEY_PERSPECTIVE en el archivo .env');
     const url = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${API_KEY}`;
@@ -13,23 +15,25 @@ export async function moderadorContenido(texto:string) {
                 comment: { text: texto },
                 requestedAttributes: {
                   TOXICITY: {},
-                  SEVERE_TOXICITY: {}
+                  SEVERE_TOXICITY: {},
+                  IDENTITY_ATTACK: {},
+                  INSULT: {},
+                  THREAT: {},
                 }
               })
         });
-        console.log("respuesta:",respuesta);
         const datos = await respuesta.json();
-        console.log("datos:", datos);
         const puntuacion = datos.attributeScores;
-        console.log("puntuacion:", puntuacion);
         
-
         return {
             esToxico: puntuacion.TOXICITY.summaryScore.value > 0.7,
-            puntuacionToxicidad: puntuacion.TOXICITY.summaryScore.value
+            esAltamenteToxico: puntuacion.SEVERE_TOXICITY.summaryScore.value > 0.6,
+            esAtaqueIdentidad: puntuacion.IDENTITY_ATTACK.summaryScore.value > 0.7,
+            esInsulto: puntuacion.INSULT.summaryScore.value > 0.7,
+            esAmenaza: puntuacion.THREAT.summaryScore.value > 0.6
         }
     } catch (error) {
         console.log(error);
-        return {esToxico: false, puntuacionToxicidad: 0} 
+        return {esToxico: false, esAltamenteToxico: false, esAtaqueIdentidad: false, esInsulto: false, esAmenaza: false} 
     }
 }
