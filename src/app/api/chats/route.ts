@@ -9,7 +9,7 @@ export async function GET(request: Request) {
         const chatIdParam = Number(searchParams.get('id'));
         const paginaParam = Number(searchParams.get('pagina') || 1);
         // este dato se obtendrá del token guardado en local store que se implementará posteriormente
-        const usuarioIdParam = Number(searchParams.get('user'));
+        const usuarioIdParam = Number(searchParams.get('usuario'));
         if (chatIdParam) {
             const [chat, pagina] = await Promise.all([
                 prisma.chats.findUnique({
