@@ -5,26 +5,26 @@ import { useEffect, useState } from "react"
 
 
 function LeftNavbar() {
-    let user = localStorage.getItem("user");
-    let [userChats, setUserChats] = useState([])
+    let usuario = localStorage.getItem("usuario");
+    let [usuarioChats, setUsuarioChats] = useState([])
 
     useEffect(()=> {
         let chats = async () => {
             try {
-                let response = await fetch(`/api/chats?user=${user}`, {
+                let respuesta = await fetch(`/api/chats?usuario=${usuario}`, {
                     method: 'GET',
                     headers: { "Content-Type": "application/json" },
                 })
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error("No se han podido obtener los chats", errorData);
-                    return errorData;
+                if (!respuesta.ok) {
+                    const datosError = await respuesta.json();
+                    console.error("No se han podido obtener los chats", datosError);
+                    return datosError;
                 }
-                const data = await response.json();
-                console.log(data);
-                setUserChats(data)
+                const datos = await respuesta.json();
+                console.log(datos);
+                setUsuarioChats(datos)
                 
-                return data;
+                return datos;
             } catch (error) {
                 console.log(error);
                 return;
@@ -38,10 +38,10 @@ function LeftNavbar() {
         <nav className="w-1/5 p-3">
             <input type="text" className="border-2 border-gray-200 rounded-md p-1 w-1/1 focus:border-black" placeholder="Search chat"></input>
             <h2 className="mt-3 p-2 ps-2 font-semibold text-center">Chats</h2>
-            {userChats.length < 1 
+            {usuarioChats.length < 1 
             ? "Cargando chats..." //añadir por aqui una animación de los chats cargando
             :<ul>
-                {userChats.map((chat) => {
+                {usuarioChats.map((chat) => {
                     return <li key={chat.id} 
                     className="border-b border-gray-200 hover:bg-gray-600 hover:text-white hover:rounded-md"
                     ><Link className="block w-full h-full p-2" href={`/pages/chats/${chat.id}`}>{chat.nombre}</Link></li>
