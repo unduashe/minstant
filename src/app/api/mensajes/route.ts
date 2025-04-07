@@ -67,7 +67,7 @@ export async function POST(request:Request) {
         let autorId: number;
         let usuario;
         // validación de que el usuario informado que intenta agregar información existe
-        if (mensaje.usuario){
+        if (mensaje.usuario && mensaje.usuario != 'null' || mensaje.usuario && mensaje.usuario != 'undefined'){
             usuario = await prisma.usuario.findUnique({
                 where: {nombreUsuario: mensaje.usuario}
             })
@@ -92,6 +92,15 @@ export async function POST(request:Request) {
         // validación de que el usuario puede escribir en el chat
         const esParticipante = chat.participantes.some((participante) => participante.usuarioId === autorId);
         if (!esParticipante && !chat.publico) return NextResponse.json({error: 'No tienes acceso para participar en el chat'}, {status: 403});
+        // agregar participante al chat público si no existía
+        if (!esParticipante && chat.publico) {
+                await prisma.usuarioChats.create({
+                    data: {
+                        usuarioId: autorId,
+                        chatId: mensaje.chatId
+                    }
+                })
+        }
         // validación de que el contenido del mensaje no sea tóxico
         const resultadoModeracion = await moderadorContenido(mensaje.contenido);
         if (Object.values(resultadoModeracion).includes(true)) return NextResponse.json(
