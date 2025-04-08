@@ -11,7 +11,7 @@ function LeftNavbar() {
     useEffect(()=> {
         let chats = async () => {
             try {
-                let respuesta = await fetch(`/api/chats?usuario=${usuario}`, {
+                let respuesta = await fetch(`http://localhost:3000/api/chats?usuario=${usuario}`, {
                     method: 'GET',
                     headers: { "Content-Type": "application/json" },
                 })
