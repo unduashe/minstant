@@ -1,17 +1,44 @@
 "use client"
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-
 import { useRef } from "react";
+import io from 'socket.io-client';
 
 function ChatPage() {
     let params = useParams();
     let [chat, setChat] = useState([]);
+    let [chatsIdUsuario, setchatsIdUsuario] = useState([])
     let [mensaje, setMensaje] = useState("");
     let usuario = localStorage.getItem("usuario") ? localStorage.getItem("usuario") : "";
+    // const socket = useRef(io('http://localhost:3001')).current;
+    const socketRef = useRef<any>(null)
 
     useEffect(() => {
-        const fetchChat = async () => {
+        if (!socketRef.current) {
+            socketRef.current = io("http://localhost:3001");
+        }
+        const socket = socketRef.current;
+        console.log(typeof params.id)
+        socket.emit('unirseChat', params.id)
+    }, [])
+
+
+    const manejarEnvioMensaje = (e) => {
+        e.preventDefault();
+        console.log(mensaje);
+        if (mensaje.trim()) {
+            socketRef.current.emit('mensaje', {
+                chatId: params.id,
+                usuario: usuario,
+                contenido: mensaje
+            });
+            setMensaje("")
+        }
+    }
+
+    // useEffect apra obtener la información del chat en el que se encuentra el usuario
+    useEffect(() => {
+        const buscarChat = async () => {
             try {
                 const response = await fetch(`/api/chats?id=${params.id}`);
 
@@ -27,8 +54,26 @@ function ChatPage() {
             };
         }
         if (params.id)
-            fetchChat();
+            buscarChat();
     }, [params.id]);
+
+    // useEffect para obtener todos los chats a los que tiene acceso el usuario
+    useEffect(() => {
+        const obtenerchatsIdUsuario = async () => {
+            const resultado = await fetch(`http://localhost:3000/api/chats?usuario=${usuario}`, {
+                method: 'GET',
+                headers: { "Content-Type": "application/json" },
+            })
+            if (!resultado.ok) {
+                const datosError = await resultado.json();
+                console.error("No se han podido obtener los chats", datosError);
+                return datosError;
+            }
+            const datos = await resultado.json();
+            setchatsIdUsuario(datos.map((datoChat: any) => datoChat.id))
+        }
+        if (usuario && usuario !== "undefined" && usuario !== "" || usuario && usuario !== "null" && usuario !== "") obtenerchatsIdUsuario();
+    }, [usuario])
 
     // funcion provisional
     function test() {
@@ -46,34 +91,39 @@ function ChatPage() {
         }
     };
 
-    async function envioMensaje(texto:string) {
-        try {
-            const respuesta = await fetch(`/api/mensajes?id=${params.id}&usuario=${usuario}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contenido: mensaje
-                })
-            });
-            console.log(respuesta);
-            
-            const datos = await respuesta.json();
-            console.log(datos);
-            setMensaje("");
-            if (!usuario) localStorage.setItem("usuario", datos.msg.autor.nombreUsuario);
-        } catch (error) {
-            console.log(error)
-        }
-    }
 
-    const manejarEnvioMensaje = async (e) => {
-        e.preventDefault();
-        await envioMensaje(mensaje)
-        console.log(mensaje);
-        
-    }
+    useEffect(() => {
+        console.log(chatsIdUsuario, "aquiiiiiiiiiiiiiiii");
+        chatsIdUsuario.forEach(chatId => {
+            socketRef.current.emit('unirseChat', chatId);
+        });
+    }, [chatsIdUsuario])
+
+    useEffect(() => {
+        socketRef.current.on('mensajeServidor', (nuevoMensaje) => {
+            console.log("funcionooooooooooooooooooo")
+            console.log(nuevoMensaje.msg);
+            console.log(chat);
+            setChat(prevChat => ({
+                ...prevChat,
+                mensajes: [...prevChat.mensajes, nuevoMensaje.msg]
+            }));
+        });
+        return () => { socketRef.current.off('mensajeServidor') }
+    }, [])
+
+    // useEffect(() => {
+    //     socketRef.current.on('mensajeEnviado', (nuevoMensaje) => {
+    //         console.log("estoyyyyyyyyyyyyyyyyyyyy")
+    //         console.log(nuevoMensaje.msg);
+    //         console.log(chat);
+    //         setChat(prevChat => ({
+    //             ...prevChat,
+    //             mensajes: [...prevChat.mensajes, nuevoMensaje.msg]
+    //         }));
+    //     });
+    //     return () => {socketRef.current.off('mensajeEnviado')}
+    // }, [])
 
     return (
         <div className="flex-col w-full flex justify-between min-h-screen">
@@ -108,7 +158,7 @@ function ChatPage() {
                         value={mensaje}
                         onInput={adjustHeight}
                         onChange={(e) => setMensaje(e.target.value)}
-                        />
+                    />
                     <button className="mx-5" type="submit">Enviar</button>
                 </form>
             </div>
