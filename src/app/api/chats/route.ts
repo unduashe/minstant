@@ -9,7 +9,9 @@ export async function GET(request: Request) {
         const chatIdParam = Number(searchParams.get('id'));
         const paginaParam = Number(searchParams.get('pagina') || 1);
         // este dato se obtendrá del token guardado en local store que se implementará posteriormente
-        const usuarioIdParam = Number(searchParams.get('usuario'));
+        const usuarioParam = searchParams.get('usuario');
+        
+        
         if (chatIdParam) {
             const [chat, pagina] = await Promise.all([
                 prisma.chats.findUnique({
@@ -46,8 +48,9 @@ export async function GET(request: Request) {
                     }
                 })
             ])
+            
             if (!chat) return NextResponse.json({ error: 'Chat no encontrado' }, { status: 404 });
-            const tieneAcceso = chat.publico || chat.participantes.length > 0;
+            const tieneAcceso = chat.publico || chat.participantes.some((participante) => participante.usuario.nombreUsuario === usuarioParam);
             if (!tieneAcceso) return NextResponse.json({ error: 'No tienes acceso al chat' }, { status: 403 });
             const respuestaMensajes= chat.mensajes.map((mensaje) => {
                 interface GuardiaRespuestaMensaje {
@@ -96,7 +99,7 @@ export async function GET(request: Request) {
             return NextResponse.json<GuardiaChatEspecifico>(response)
         }
         // añadir bloque para devolver todos los chats del usuario logado
-        if (!usuarioIdParam) {
+        if (!usuarioParam || !chatIdParam) {
             const { searchParams } = new URL(request.url)
             const paginacion = Number(searchParams.get('pagina') || 1)
             const chatsPublicos = await prisma.chats.findMany({
