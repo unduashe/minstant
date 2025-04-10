@@ -16,12 +16,14 @@ const io = new Server(httpServer, {
 
 io.on('connection', (socket) => {
     console.log('usuario-conectado', socket.id);
-    console.log(socket.id, socket.rooms)
+    // console.log(socket.id, socket.rooms)
     // evento para unirse a chat
+    socket.data.salasUnidas = new Set()
     socket.on('unirseChat', (chatId) => {
-        socket.join(chatId);
+        if (socket.data.salasUnidas.has(String(chatId))) return;
+        else socket.data.salasUnidas.add(String(chatId))
+        socket.join(String(chatId));
         console.log(`${socket.id} unido a chat ${chatId}`);
-        console.log(`${socket.id} rooms:`, socket.rooms);
     })
     // evento para enviar mensaje y notificación
     socket.on('mensaje', async (datos) => {
@@ -36,14 +38,11 @@ io.on('connection', (socket) => {
                     contenido: contenido
                 })
             })
-            console.log(respuesta);
             const nuevoMensaje = await respuesta.json();
 
             io.emit('mensajeEnviado', nuevoMensaje);
-            console.log(chatId);
             
             // evento para enviar notificación
-            console.log(typeof chatId)
             io.to(chatId).emit('mensajeServidor', nuevoMensaje);
             // io.emit('mensaje-servidor', nuevoMensaje);
 
