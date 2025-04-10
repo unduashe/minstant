@@ -8,6 +8,7 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const chatIdParam = Number(searchParams.get('id'));
         const paginaParam = Number(searchParams.get('pagina') || 1);
+        const skipParam = Number(searchParams.get('skip') || 30)
         // este dato se obtendrá del token guardado en local store que se implementará posteriormente
         const usuarioParam = searchParams.get('usuario');
         
@@ -30,6 +31,9 @@ export async function GET(request: Request) {
                             }
                         },
                         mensajes: {
+                            orderBy: {
+                                id: 'desc'
+                            },
                             include: {
                                 autor: {
                                     select: {
@@ -37,8 +41,8 @@ export async function GET(request: Request) {
                                     }
                                 }
                             },
-                            skip: (paginaParam - 1) * 20,
-                            take: 20
+                            skip: (paginaParam - 1) * skipParam,
+                            take: skipParam
                         }
                     }
                 }),
