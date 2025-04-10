@@ -23,7 +23,14 @@ export async function moderadorContenido(texto:string):Promise<GuardiaRespuestaM
               })
         });
         const datos = await respuesta.json();
-        const puntuacion = datos.attributeScores;
+        const puntuacion = await datos.attributeScores;
+        if (!puntuacion) return {
+            esToxico: false,
+            esAltamenteToxico: false,
+            esAtaqueIdentidad: false,
+            esInsulto: false,
+            esAmenaza: false
+        }
         
         return {
             esToxico: puntuacion.TOXICITY.summaryScore.value > 0.7,
