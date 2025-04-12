@@ -3,18 +3,25 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useRef } from "react";
 import io from 'socket.io-client';
-import { GuardiaChatEspecifico, 
-    GuardiaMensajeChatEspecifico, 
+import {
+    GuardiaChatEspecifico,
+    GuardiaMensajeChatEspecifico,
     GuardiaChatUsuario,
-    GuardiaChatEspecificoParticipantes } from '../../../../../lib/guardiasTipo';
+    GuardiaChatEspecificoParticipantes
+} from '../../../../../lib/guardiasTipo';
 
 function ChatPage() {
     let params = useParams();
     let [chat, setChat] = useState<GuardiaChatEspecifico | null>(null);
-    let [chatsIdUsuario, setchatsIdUsuario] = useState<number[]>([])
+    let [chatsIdUsuario, setchatsIdUsuario] = useState<number[]>([]);
     let [mensaje, setMensaje] = useState<string>("");
-    let [usuario, setUsuario] = useState<string | null>("")
-    const socketRef = useRef<any>(null)
+    let [usuario, setUsuario] = useState<string | null>("");
+    const socketRef = useRef<any>(null);
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    let [textareaHeight, setTextareaHeight] = useState<string>("50px");
+    const mensajesFinalRef = useRef<HTMLDivElement | null>(null);
+    let [primeraCargaPagina, setPrimeraCargaPagina] = useState<boolean>(true)
+    
 
     useEffect(() => {
         const usuarioAlmacenamientoNavegador = localStorage.getItem("usuario");
@@ -30,7 +37,13 @@ function ChatPage() {
     }, [])
 
 
-    const manejarEnvioMensaje = (e: React.FormEvent) => {
+    const manejarEnvioMensaje = async (e: React.FormEvent) => {
+        await envioMensaje(e);
+        setTimeout(() => {
+            scrollAbajo(true)
+        }, 300)
+    }
+    const envioMensaje = async (e: React.FormEvent) => {
         e.preventDefault();
         if (mensaje.trim()) {
             socketRef.current.emit('mensaje', {
@@ -38,7 +51,7 @@ function ChatPage() {
                 usuario: usuario,
                 contenido: mensaje
             });
-            setMensaje("")
+            setMensaje("");
         }
     }
 
@@ -76,7 +89,7 @@ function ChatPage() {
                 console.error("No se han podido obtener los chats", datosError);
                 return;
             }
-            const datos:GuardiaChatUsuario[] = await resultado.json();
+            const datos: GuardiaChatUsuario[] = await resultado.json();
             console.log(datos)
             setchatsIdUsuario(datos.map((datoChat: any) => datoChat.id))
         }
@@ -84,18 +97,35 @@ function ChatPage() {
     }, [usuario])
 
     // funcion provisional
-    function test() {
-        console.log(chat?.fechaCreacion)
-    }
+    const scrollAbajo = (smooth: boolean = false) => {
+        console.log(smooth);
+        mensajesFinalRef.current?.scrollIntoView({
+            behavior: (smooth ? "smooth" : "auto")
+        });
+    };
 
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    useEffect(() => {
+        if (primeraCargaPagina && chat?.mensajes.length) {
+            scrollAbajo(false);
+            setPrimeraCargaPagina(false);
+        }
+    }, [chat?.mensajes.length, primeraCargaPagina]);
+
+    useEffect(() => {
+        if (!primeraCargaPagina && chat?.mensajes.length) {
+            scrollAbajo(true);
+        }
+    }, [chat?.mensajes])
 
     const adjustHeight = () => {
         const textarea = textareaRef.current;
         if (textarea) {
             textarea.style.height = "auto";
-            const maxHeight = 98;
-            textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight) + 5}px`;
+            const maxHeight = 103;
+            let alturaDinamica = Math.min(textarea.scrollHeight, maxHeight) + 5
+            textarea.style.height = `${alturaDinamica}px`;
+            setTextareaHeight(`${alturaDinamica + 13}px`)
+            console.log(textareaHeight);
         }
     };
 
@@ -109,7 +139,7 @@ function ChatPage() {
 
     useEffect(() => {
         const socket = socketRef.current
-        socket.on('mensajeServidor', (nuevoMensaje: {msg: GuardiaMensajeChatEspecifico}) => {
+        socket.on('mensajeServidor', (nuevoMensaje: { msg: GuardiaMensajeChatEspecifico }) => {
             console.log(nuevoMensaje.msg);
             console.log(chat);
             if (!nuevoMensaje.msg) return;
@@ -132,7 +162,7 @@ function ChatPage() {
                 {(chat.participantes || []).length < 1
                     ? 0
                     : <ul>
-                        {chat.participantes.map((participante:GuardiaChatEspecificoParticipantes) => <li key={participante.nombreUsuario}>{participante.nombreUsuario}</li>)}
+                        {chat.participantes.map((participante: GuardiaChatEspecificoParticipantes) => <li key={participante.nombreUsuario}>{participante.nombreUsuario}</li>)}
                     </ul>
                 }
             </h1>
@@ -140,28 +170,30 @@ function ChatPage() {
             <div className='flex items-center w-full flex-col justify-between space-y-5'>
                 {(chat.mensajes || []).length < 1
                     ? "Se el primero en enviar un mensaje!"
-                    : <ul className='w-90/100 space-y-2'>
-                        {chat.mensajes.map((mensaje:GuardiaMensajeChatEspecifico) =>
+                    : <ul className={`w-90/100 space-y-2 pb-[${textareaHeight}]`}>
+                        {chat.mensajes.map((mensaje: GuardiaMensajeChatEspecifico) =>
                             <li className='border-2 border-gray-200 rounded-md p-1 px-3' key={mensaje.id}>{mensaje.contenido}
                                 <span className='float-right'>{mensaje.autor.nombreUsuario}</span>
                             </li>
                         )}
                     </ul>
                 }
-
-                <form className="w-90/100 flex justify-center mb-5" onSubmit={manejarEnvioMensaje}>
-                    <textarea
-                        ref={textareaRef}
-                        className="px-3 py-1 border border-gray-200 rounded-md resize-none overflow-y-auto max-h-[50rem] w-full"
-                        rows={1}
-                        placeholder="Mensaje"
-                        value={mensaje}
-                        onInput={adjustHeight}
-                        onChange={(e) => setMensaje(e.target.value)}
-                    />
-                    <button className="mx-5" type="submit">Enviar</button>
-                </form>
+                <div className='flex justify-center bg-white w-90/100 fixed bottom-0'>
+                    <form className="w-83/100 flex justify-center mb-5 " onSubmit={manejarEnvioMensaje}>
+                        <textarea
+                            ref={textareaRef}
+                            className="px-3 py-1 border border-gray-200 rounded-md resize-none overflow-y-auto max-h-[50rem] w-full"
+                            rows={1}
+                            placeholder="Mensaje"
+                            value={mensaje}
+                            onInput={adjustHeight}
+                            onChange={(e) => setMensaje(e.target.value)}
+                        />
+                        <button className="mx-5" type="submit">Enviar</button>
+                    </form>
+                </div>
             </div>
+            <div ref={mensajesFinalRef} />
         </div>
     )
 }
