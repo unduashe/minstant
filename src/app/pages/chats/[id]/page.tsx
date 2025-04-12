@@ -21,7 +21,8 @@ function ChatPage() {
     let [textareaHeight, setTextareaHeight] = useState<string>("50px");
     const mensajesFinalRef = useRef<HTMLDivElement | null>(null);
     let [primeraCargaPagina, setPrimeraCargaPagina] = useState<boolean>(true)
-    
+
+
 
     useEffect(() => {
         const usuarioAlmacenamientoNavegador = localStorage.getItem("usuario");
@@ -157,17 +158,21 @@ function ChatPage() {
 
     return (
         <div className="flex-col w-full flex justify-between min-h-screen">
-            <h1>
+            <h1 className='fixed top-0 bg-white w-full'>
                 Bienvenido a {chat.nombre} creado el {chat.fechaCreacion.toString()}, participantes:
                 {(chat.participantes || []).length < 1
                     ? 0
-                    : <ul>
-                        {chat.participantes.map((participante: GuardiaChatEspecificoParticipantes) => <li key={participante.nombreUsuario}>{participante.nombreUsuario}</li>)}
+                    : <ul className='flex flex-row space-x-1 truncate'>
+                        {chat.participantes.map((participante: GuardiaChatEspecificoParticipantes, index: number) => (
+                            <li key={participante.nombreUsuario}>
+                                {participante.nombreUsuario}{index === chat.participantes.length - 1 ? "." : ","}
+                            </li>
+                        ))}
                     </ul>
                 }
             </h1>
 
-            <div className='flex items-center w-full flex-col justify-between space-y-5'>
+            <div className='flex items-center w-full flex-col justify-between space-y-5 pt-13'>
                 {(chat.mensajes || []).length < 1
                     ? "Se el primero en enviar un mensaje!"
                     : <ul className={`w-90/100 space-y-2 pb-[${textareaHeight}]`}>
