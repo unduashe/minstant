@@ -9,6 +9,7 @@ import {
     GuardiaChatUsuario,
     GuardiaChatEspecificoParticipantes
 } from '../../../../../lib/guardiasTipo';
+import e from 'express';
 
 function ChatPage() {
     let params = useParams();
@@ -21,7 +22,8 @@ function ChatPage() {
     let [textareaHeight, setTextareaHeight] = useState<string>("50px");
     const mensajesFinalRef = useRef<HTMLDivElement | null>(null);
     let [primeraCargaPagina, setPrimeraCargaPagina] = useState<boolean>(true)
-
+    // let [scrollAbajo, setScrollAbajo] = useState<boolean>(true)
+    const contenedorSueltoRef = useRef<boolean>(false);
 
 
     useEffect(() => {
@@ -40,9 +42,6 @@ function ChatPage() {
 
     const manejarEnvioMensaje = async (e: React.FormEvent) => {
         await envioMensaje(e);
-        setTimeout(() => {
-            scrollAbajo(true)
-        }, 300)
     }
     const envioMensaje = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -98,23 +97,23 @@ function ChatPage() {
     }, [usuario])
 
     // funcion provisional
-    const scrollAbajo = (smooth: boolean = false) => {
+    const scrollAbajo = (smooth: string = 'instantaneo') => {
         console.log(smooth);
         mensajesFinalRef.current?.scrollIntoView({
-            behavior: (smooth ? "smooth" : "auto")
+            behavior: (smooth==='suave' ? "smooth" : "auto")
         });
     };
 
     useEffect(() => {
         if (primeraCargaPagina && chat?.mensajes.length) {
-            scrollAbajo(false);
+            scrollAbajo('instantaneo');
             setPrimeraCargaPagina(false);
         }
     }, [chat?.mensajes.length, primeraCargaPagina]);
 
-    useEffect(() => {
-        if (!primeraCargaPagina && chat?.mensajes.length) {
-            scrollAbajo(true);
+    useEffect(() => {        
+        if (!primeraCargaPagina && chat?.mensajes.length && !contenedorSueltoRef.current) {
+            scrollAbajo('suave');
         }
     }, [chat?.mensajes])
 
@@ -152,12 +151,30 @@ function ChatPage() {
         return () => { socket.off('mensajeServidor') }
     }, [chat])
 
+    function manejarScroll(e:any){
+        console.log("funciono");
+        const scrollTop = e.target.scrollTop;
+        const clientHeight = e.target.clientHeight;
+        const scrollHeight = e.target.scrollHeight;
+        console.log(e.target.scrollTop, e.target.clientHeight, e.target.scrollHeight);
+        // console.log(contenedorMensajesRef.current, "el nuevo!");
+        // por donde se debería pedir en el scrollTop: 306, 
+        // clientHeight = 1478
+        // scrollHeight = 1478
+        // 734
+        if (scrollHeight - clientHeight - 200 > scrollTop) {
+            console.log("el scroll esta suelto");
+            contenedorSueltoRef.current = true;  
+        }
+        else contenedorSueltoRef.current = false
+    }
+
     if (!chat) {
         return <div>Cargando chat...</div>
     }
 
     return (
-        <div className="flex-col w-full flex justify-between min-h-screen">
+        <div className="flex-col w-full flex justify-between min-h-screen overflow-y-auto" onScroll={manejarScroll}>
             <h1 className='fixed top-0 bg-white w-full'>
                 Bienvenido a {chat.nombre} creado el {chat.fechaCreacion.toString()}, participantes:
                 {(chat.participantes || []).length < 1
@@ -184,7 +201,7 @@ function ChatPage() {
                     </ul>
                 }
                 <div className='flex justify-center bg-white w-90/100 fixed bottom-0'>
-                    <form className="w-83/100 flex justify-center mb-5 " onSubmit={manejarEnvioMensaje}>
+                    <form className="w-824/1000 flex justify-center mb-5 " onSubmit={manejarEnvioMensaje}>
                         <textarea
                             ref={textareaRef}
                             className="px-3 py-1 border border-gray-200 rounded-md resize-none overflow-y-auto max-h-[50rem] w-full"
