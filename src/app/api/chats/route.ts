@@ -49,7 +49,7 @@ export async function GET(request: Request) {
                 }),
                 prisma.mensajes.count({
                     where: {
-                        id: chatIdParam
+                        chatId: chatIdParam
                     }
                 })
             ])
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
                 fechaCreacion: chat.fechaCreacion,
                 participantes: chat.participantes.map((participante) => participante.usuario),
                 mensajes: respuestaMensajes,
-                paginasMensajeTotales: Math.ceil(pagina / 20),
+                paginasMensajeTotales: Math.ceil(pagina / skipParam),
                 paginaMensajeActual: paginaParam
             }
             return NextResponse.json<GuardiaChatEspecifico>(response)
