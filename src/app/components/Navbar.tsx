@@ -41,12 +41,12 @@ function LeftNavbar() {
 
 
     return (
-        <nav className="w-1/5 p-3">
+        <nav className="w-1/5 p-3 sticky overflow-y-auto">
             <input type="text" className="border-2 border-gray-200 rounded-md p-1 w-1/1 focus:border-black" placeholder="Search chat"></input>
             <h2 className="mt-3 p-2 ps-2 font-semibold text-center">Chats</h2>
             {usuarioChats.length < 1
                 ? "Cargando chats..." //añadir por aqui una animación de los chats cargando
-                : <ul>
+                : <ul className="truncate">
                     {usuarioChats.map((chat) => {
                         return <li key={chat.id || `skeleton-${Math.random()}`}
                             className="border-b border-gray-200 hover:bg-gray-600 hover:text-white hover:rounded-md"
