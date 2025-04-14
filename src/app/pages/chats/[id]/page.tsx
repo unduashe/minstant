@@ -170,7 +170,7 @@ function ChatPage() {
                 return;
             }
             const datos = await resultado.json()
-            const nuevosMensajes = datos.reverse();
+            const nuevosMensajes = datos.mensajes.reverse();
             console.log(nuevosMensajes);
             console.log(chat?.mensajes);
             
@@ -182,7 +182,10 @@ function ChatPage() {
                 };
               });
             setObteniendoMensajesAntiguos(false);
-            if (datos.length < 30) setObtenidosTodosMensajes(true)
+            if (datos.paginaActual === datos.paginasTotales) {
+                setObtenidosTodosMensajes(true);
+                return;
+            }
             paginaMensajesRef.current = pagina + 1;
         } catch (error) {
             console.log(error);

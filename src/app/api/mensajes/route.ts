@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { MensajeEsquema } from '../../../../lib/esquemas';
 import { moderadorContenido } from '../../../../lib/moderacion';
-import { boolean } from 'zod';
 import { GuardiaMensajeChatEspecifico } from '../../../../lib/guardiasTipo';
+import { promise } from 'zod';
 
 const prisma = new PrismaClient();
 
@@ -11,9 +11,15 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const paginaParam = Number(searchParams.get('pagina')) || 1;
-        let skipParam = Number(searchParams.get('skip') || 30);
         const chatIdParam = Number(searchParams.get('id'));
         const usuarioParam = searchParams.get('usuario');
+        let skipParam;
+        if (paginaParam <= 1) {
+            skipParam = Number(searchParams.get('skip') || 30);
+        }
+        else {
+            skipParam = 30
+        }
 
         const chatExiste = await prisma.chats.findUnique({
             where: {
@@ -38,20 +44,28 @@ export async function GET(request: Request) {
         if (!chatExiste) return NextResponse.json({ error: "El chat solicitado no existe" }, { status: 404 });
         if (!participante && !publico) return NextResponse.json({ error: "No dispones de acceso al chat" }, { status: 403 });
 
-        const mensajes = await prisma.mensajes.findMany({
-            orderBy: {
-                id: 'desc'
-            },
-            include: {
-                autor: {
-                    select: {
-                        nombreUsuario: true
+        const [mensajes, pagina] = await Promise.all([
+            prisma.mensajes.findMany({
+                orderBy: {
+                    id: 'desc'
+                },
+                include: {
+                    autor: {
+                        select: {
+                            nombreUsuario: true
+                        }
                     }
+                },
+                skip: (paginaParam - 1) * skipParam,
+                take: 30,
+            }),
+            prisma.mensajes.count({
+                where: {
+                    chatId: chatIdParam
                 }
-            },
-            skip: (paginaParam - 1) * skipParam,
-            take: 30,
-        });
+            })
+
+        ])
         // formateo de respuesta
         const respuestaMensajes = mensajes.map((mensaje) => {
             const respuestaMensaje: GuardiaMensajeChatEspecifico = {
@@ -64,9 +78,15 @@ export async function GET(request: Request) {
                 autor: mensaje.autor
             }
             return respuestaMensaje
-        })
+        });
 
-        return NextResponse.json(respuestaMensajes);
+        const respuesta = {
+            mensajes: respuestaMensajes,
+            paginaActual: paginaParam,
+            paginasTotales: Math.ceil(pagina / skipParam)
+        }
+
+        return NextResponse.json(respuesta);
 
     } catch (error) {
         return NextResponse.json(
