@@ -26,6 +26,7 @@ function ChatPage() {
     let paginaMensajesRef = useRef<number>(2);
     let [obteniendoMensajesAntiguos, setObteniendoMensajesAntiguos] = useState(false)
     let [obtenidosTodosMensajes, setObtenidosTodosMensajes] = useState(false);
+    let [mostrarBoton, setMostrarBoton] = useState<boolean>(false);
 
 
     useEffect(() => {
@@ -149,8 +150,12 @@ function ChatPage() {
 
         if (scrollHeight - clientHeight - 200 > scrollTop) {
             contenedorSueltoRef.current = true;
+            setMostrarBoton(true);
         }
-        else contenedorSueltoRef.current = false;
+        else {
+            contenedorSueltoRef.current = false;
+            setMostrarBoton(false);
+        }
         if (scrollTop < 400 && !obteniendoMensajesAntiguos && !obtenidosTodosMensajes) {
             cargarMensajesAntiguos();
             setObteniendoMensajesAntiguos(true);
@@ -158,7 +163,7 @@ function ChatPage() {
     }
     // funcion para cargar mensajes antiguos
     async function cargarMensajesAntiguos() {
-        const pagina = paginaMensajesRef.current;        
+        const pagina = paginaMensajesRef.current;
         try {
             const resultado = await fetch(`/api/mensajes?id=${params.id}&pagina=${pagina}&usuario=${usuario}&skip=${chat?.mensajes.length}`, {
                 method: 'GET',
@@ -173,14 +178,14 @@ function ChatPage() {
             const nuevosMensajes = datos.mensajes.reverse();
             console.log(nuevosMensajes);
             console.log(chat?.mensajes);
-            
+
             setChat((prevChat) => {
                 if (!prevChat) return prevChat;
                 return {
-                  ...prevChat,
-                  mensajes: [...nuevosMensajes, ...prevChat.mensajes]
+                    ...prevChat,
+                    mensajes: [...nuevosMensajes, ...prevChat.mensajes]
                 };
-              });
+            });
             setObteniendoMensajesAntiguos(false);
             if (datos.paginaActual === datos.paginasTotales) {
                 setObtenidosTodosMensajes(true);
@@ -250,6 +255,28 @@ function ChatPage() {
                         <button className="mx-5" type="submit">Enviar</button>
                     </form>
                 </div>
+                {/* inicio botón condicional para desclazar el scroll abajo del todo */}
+                <button className={`${mostrarBoton ? "visible" : "invisible"} absolute bottom-20 right-8 cursor-pointer w-10 h-10 
+                rounded-full bg-black flex items-center justify-center overflow-hidden group`}
+                onClick={() => scrollAbajo('suave')}>
+                    <svg
+                        className="w-3 fill-white duration-300 group-hover:translate-y-12"
+                        viewBox="0 0 384 512"
+                    >
+                        <path d="M169.4 470.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 
+                        0L224 370.8V64c0-17.7-14.3-32-32-32s-32 14.3-32 32v306.8L54.6 265.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5
+                         32.8 0 45.3l160 160z" />
+                    </svg>
+                    <svg
+                        className="w-3 fill-white absolute top-[-2rem] duration-300 group-hover:top-3"
+                        viewBox="0 0 384 512"
+                    >
+                        <path d="M169.4 470.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 
+                        0L224 370.8V64c0-17.7-14.3-32-32-32s-32 14.3-32 32v306.8L54.6 265.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 
+                        32.8 0 45.3l160 160z" />
+                    </svg>
+                </button>
+                {/* fin botón condicional para desclazar el scroll abajo del todo */}
             </div>
             <div ref={mensajesFinalRef} />
         </div>
