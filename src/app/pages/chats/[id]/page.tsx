@@ -9,7 +9,6 @@ import {
     GuardiaChatUsuario,
     GuardiaChatEspecificoParticipantes
 } from '../../../../../lib/guardiasTipo';
-import e from 'express';
 
 function ChatPage() {
     let params = useParams();
@@ -108,6 +107,7 @@ function ChatPage() {
     // obtener mensaje a través de webSocket
     const manejarEnvioMensaje = async (e: React.FormEvent) => {
         await envioMensaje(e);
+        contenedorSueltoRef.current = false;
     }
     const envioMensaje = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -252,15 +252,31 @@ function ChatPage() {
                             onInput={adjustHeight}
                             onChange={(e) => setMensaje(e.target.value)}
                         />
-                        <button className="mx-5" type="submit">Enviar</button>
+                        <button className="ml-2 bg-blue-500 text-white text-sm px-4 py-2 flex items-center rounded-[16px] 
+                        transition-all duration-200 cursor-pointer active:scale-95 group gap-2"
+                            type="submit">
+                            <svg className='w-5 transition-transform duration-300 ease-in-out group-hover:translate-x-[1.6em] 
+                                group-hover:rotate-45 group-hover:scale-110'
+                                viewBox="0 0 24 24">
+                                <path fill='none' d='M0 0h24v24H0z'></path>
+                                <path
+                                    fill="currentColor"
+                                    d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 
+                                        19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z"
+                                ></path>
+                            </svg>
+                            <span className="transition-all duration-300 ease-in-out group-hover:translate-x-[5em]">
+                                Enviar
+                            </span>
+                        </button>
                     </form>
                 </div>
                 {/* inicio botón condicional para desclazar el scroll abajo del todo */}
                 <button className={`${mostrarBoton ? "visible" : "invisible"} absolute bottom-20 right-8 cursor-pointer w-10 h-10 
                 rounded-full bg-black flex items-center justify-center overflow-hidden group`}
-                onClick={() => scrollAbajo('suave')}>
+                    onClick={() => scrollAbajo('suave')}>
                     <svg
-                        className="w-3 fill-white duration-300 group-hover:translate-y-12"
+                        className="w-3 fill-white duration-300 ease-in-out group-hover:translate-y-12"
                         viewBox="0 0 384 512"
                     >
                         <path d="M169.4 470.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 
@@ -268,7 +284,7 @@ function ChatPage() {
                          32.8 0 45.3l160 160z" />
                     </svg>
                     <svg
-                        className="w-3 fill-white absolute top-[-2rem] duration-300 group-hover:top-3"
+                        className="w-3 fill-white absolute top-[-2rem] duration-300 ease-in-out group-hover:top-3"
                         viewBox="0 0 384 512"
                     >
                         <path d="M169.4 470.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 
