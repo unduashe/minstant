@@ -2,12 +2,14 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { GuardiaChatUsuario } from "../../../lib/guardiasTipo";
+import { usePathname } from 'next/navigation';
 
 
 
 function LeftNavbar() {
     let [usuario, setUsuario] = useState<string | null>(null);
     let [usuarioChats, setUsuarioChats] = useState<GuardiaChatUsuario[]>([]);
+    let nombreRuta = usePathname();
 
     useEffect(() => {
         let usuarioAlmacenamientoLocal = localStorage.getItem("usuario");
@@ -49,7 +51,8 @@ function LeftNavbar() {
                 : <ul className="truncate">
                     {usuarioChats.map((chat) => {
                         return <li key={chat.id || `skeleton-${Math.random()}`}
-                            className="border-b border-gray-200 hover:bg-gray-600 hover:text-white hover:rounded-md"
+                            className={`border-b border-gray-300 hover:bg-blue-500 hover:text-white hover:rounded-md 
+                                ${`/pages/chats/${chat.id}` === nombreRuta ? "bg-dark-gray-blue rounded-md":""}`}
                         ><Link className="block w-full h-full p-2" href={`/pages/chats/${chat.id}`}>{chat.nombre}</Link></li>
                     })}
                 </ul>

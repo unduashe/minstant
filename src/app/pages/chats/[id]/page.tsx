@@ -26,6 +26,7 @@ function ChatPage() {
     let [obteniendoMensajesAntiguos, setObteniendoMensajesAntiguos] = useState(false)
     let [obtenidosTodosMensajes, setObtenidosTodosMensajes] = useState(false);
     let [mostrarBoton, setMostrarBoton] = useState<boolean>(false);
+    let [alertaContenidoInapropiado, setAlertaContenidoInapropiado] = useState<boolean>(false);
 
 
     useEffect(() => {
@@ -92,9 +93,8 @@ function ChatPage() {
     // enviar mensaje a través de webSocket
     useEffect(() => {
         const socket = socketRef.current
-        socket.on('mensajeServidor', (nuevoMensaje: { msg: GuardiaMensajeChatEspecifico }) => {
-            // console.log(nuevoMensaje.msg);
-            // console.log(chat);
+        socket.on('mensajeServidor', (nuevoMensaje: { msg: GuardiaMensajeChatEspecifico } | { error: string }) => {
+            if ('error' in nuevoMensaje) return setAlertaContenidoInapropiado(true);
             if (!nuevoMensaje.msg) return;
             setChat((prevChat) => ({
                 ...prevChat!,
@@ -131,6 +131,8 @@ function ChatPage() {
     // useEffect para scrolear instantáneamente abajo en la carga de la página
     useEffect(() => {
         if (primeraCargaPagina && chat?.mensajes.length) {
+            console.log(chat.mensajes[0].fechaEnvio);
+
             scrollAbajo('instantaneo');
             setPrimeraCargaPagina(false);
         }
@@ -210,42 +212,67 @@ function ChatPage() {
         }
     };
 
+    function horasMinutos(fecha: Date) {
+        const fechaDate = new Date(fecha);
+        return new Intl.DateTimeFormat('es-ES', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        }).format(fechaDate)
+    }
+
     if (!chat) {
         return <div>Cargando chat...</div>
     }
 
     return (
-        <div className="flex-col w-full flex justify-between min-h-screen overflow-y-auto" onScroll={manejarScroll}>
-            <h1 className='sticky top-0 bg-white w-full'>
-                Bienvenido a {chat.nombre} creado el {chat.fechaCreacion.toString()}, participantes:
-                {(chat.participantes || []).length < 1
-                    ? 0
-                    : <ul className='flex flex-row space-x-1 truncate'>
-                        {chat.participantes.map((participante: GuardiaChatEspecificoParticipantes, index: number) => (
-                            <li key={participante.nombreUsuario}>
-                                {participante.nombreUsuario}{index === chat.participantes.length - 1 ? "." : ","}
-                            </li>
-                        ))}
-                    </ul>
-                }
-            </h1>
+        <div className="flex-col w-full flex justify-between min-h-screen overflow-y-auto border-l-1 border-l-blue-200 bg-gray-blue"
+            onScroll={manejarScroll}>
+            <div className='sticky top-0 w-full bg-dark-gray-blue shadow-lg shadow-gray-300 py-1'>
+                <h1 className='w-90/100 flex flex-col mx-auto'>
+                    <span className='text-lg uppercase font-bold'>{chat.nombre}</span>
+                    <span>
+                        {(chat.participantes || []).length < 1
+                            ? "Tú"
+                            : <ul className='flex flex-row space-x-1 truncate text-sm text-gray-500'>
+                                {chat.participantes.map((participante: GuardiaChatEspecificoParticipantes, index: number) => (
+                                    <li key={participante.nombreUsuario}>
+                                        {participante.nombreUsuario}{index === chat.participantes.length - 1 ? "." : ","}
+                                    </li>
+                                ))}
+                            </ul>
+                        }
+                    </span>
+                </h1>
+            </div>
 
             <div className='flex items-center w-full flex-col justify-between space-y-5 pt-5'>
                 {(chat.mensajes || []).length < 1
                     ? "Se el primero en enviar un mensaje!"
                     : <ul className={`w-90/100 space-y-2`}>
                         {chat.mensajes.map((mensaje: GuardiaMensajeChatEspecifico) =>
-                            <li className='border-2 border-gray-200 rounded-md p-1 px-3' key={mensaje.id}>{mensaje.contenido}
-                                <span className='float-right'>{mensaje.autor.nombreUsuario}{mensaje.id}</span>
+                            <li className=' flex flex-col'
+                                key={mensaje.id}>
+                                <span className='px-3 border-t-2 border-l-2 border-r-2 border-gray-300 rounded-t-md w-min ml-1 bg-white text-sm'>{mensaje.autor.nombreUsuario}</span>
+                                <div className='border-2 border-gray-300 rounded-md p-1 pb-0 px-3 bg-white'>
+                                    <span>{mensaje.contenido}</span>
+                                    <span className='float-right mt-2 text-sm text-gray-500'>{horasMinutos(mensaje.fechaEnvio)}</span>
+                                </div>
                             </li>
                         )}
                     </ul>
                 }
-                <div className='flex justify-center bg-white w-90/100 sticky bottom-0'>
-                    <form className="w-full flex justify-center mb-5 " onSubmit={manejarEnvioMensaje}>
+                {/* Inicio formulario mensaje mensaje */}
+
+                <div className='flex justify-center bg-dark-gray-blue drop-shadow-[0_-4px_6px_rgba(209,213,220,1)] w-full sticky bottom-0 mb-0 py-2'>
+                    <form className="w-90/100 flex justify-center" onSubmit={manejarEnvioMensaje}>
                         <textarea
                             ref={textareaRef}
-                            className="px-3 py-1 border border-gray-200 rounded-md resize-none overflow-y-auto max-h-[50rem] w-full"
+                            className="px-3 py-1 border border-gray-200 rounded-md resize-none overflow-y-auto 
+                            max-h-[50rem] w-full bg-white"
                             rows={1}
                             placeholder="Mensaje"
                             value={mensaje}
@@ -253,10 +280,10 @@ function ChatPage() {
                             onChange={(e) => setMensaje(e.target.value)}
                         />
                         <button className="ml-2 bg-blue-500 text-white text-sm px-4 py-2 flex items-center rounded-[16px] 
-                        transition-all duration-200 cursor-pointer active:scale-95 group gap-2"
+                        transition-all duration-200 cursor-pointer active:scale-95 group gap-2 overflow-hidden flex-shrink-0"
                             type="submit">
-                            <svg className='w-5 transition-transform duration-300 ease-in-out group-hover:translate-x-[1.6em] 
-                                group-hover:rotate-45 group-hover:scale-110'
+                            <svg className='w-4 transition-transform duration-300 ease-in-out group-hover:translate-x-[1.6em] 
+                                group-hover:rotate-45 group-hover:scale-140'
                                 viewBox="0 0 24 24">
                                 <path fill='none' d='M0 0h24v24H0z'></path>
                                 <path
@@ -271,6 +298,7 @@ function ChatPage() {
                         </button>
                     </form>
                 </div>
+                {/* fin formulario mensaje */}
                 {/* inicio botón condicional para desclazar el scroll abajo del todo */}
                 <button className={`${mostrarBoton ? "visible" : "invisible"} absolute bottom-20 right-8 cursor-pointer w-10 h-10 
                 rounded-full bg-black flex items-center justify-center overflow-hidden group`}
@@ -294,6 +322,20 @@ function ChatPage() {
                 </button>
                 {/* fin botón condicional para desclazar el scroll abajo del todo */}
             </div>
+            {alertaContenidoInapropiado ?
+                <div className='fixed z-20 inset-0 flex items-center justify-center bg-black/70'>
+                    <div className='bg-red-600 rounded-md w-3xl flex justify-center flex-col space-y-3 p-4 shadow-lg'>
+                        <p className='text-white text-center text-2xl'>Minstant es un chat gratuito donde se deben seguir unas 
+                            mínimas reglas de comportamiento, se ha de ser respetuoso con los mensajes, sin insultos y sin toxicidad.
+                        </p>
+                        <button onClick={() => setAlertaContenidoInapropiado(false)}
+                            className='bg-blue-500 rounded-md text-white p-2 w-fit mx-auto cursor-pointer 
+                            hover:bg-blue-700 active:scale-90'>
+                            Seré respetuoso
+                        </button>
+                    </div>
+                </div>
+                : ""}
             <div ref={mensajesFinalRef} />
         </div>
     )
