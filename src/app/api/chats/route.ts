@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { GuardiaChatEspecifico, GuardiaChatUsuario, GuardiaMensajeChatEspecifico } from "../../../../lib/guardiasTipo";
+import { connect } from "socket.io-client";
 
 const prisma = new PrismaClient();
 
@@ -12,8 +13,7 @@ export async function GET(request: Request) {
         const skipParam = Number(searchParams.get('skip') || 30)
         // este dato se obtendrá del token guardado en local store que se implementará posteriormente
         const usuarioParam = searchParams.get('usuario');
-        
-        
+
         if (chatIdParam) {
             const [chat, pagina] = await Promise.all([
                 prisma.chats.findUnique({
@@ -53,11 +53,11 @@ export async function GET(request: Request) {
                     }
                 })
             ])
-            
+
             if (!chat) return NextResponse.json({ error: 'Chat no encontrado' }, { status: 404 });
             const tieneAcceso = chat.publico || chat.participantes.some((participante) => participante.usuario.nombreUsuario === usuarioParam);
             if (!tieneAcceso) return NextResponse.json({ error: 'No tienes acceso al chat' }, { status: 403 });
-            const respuestaMensajes= chat.mensajes.map((mensaje) => {
+            const respuestaMensajes = chat.mensajes.map((mensaje) => {
                 const respuestaMensaje: GuardiaMensajeChatEspecifico = {
                     id: mensaje.id,
                     contenido: mensaje.contenido,
@@ -102,23 +102,73 @@ export async function GET(request: Request) {
                 skip: (paginacion - 1) * 20,
                 take: 20
             })
-            // interface GuardiaChatPublico {
-            //     id: number;
-            //     nombre: string;
-            //     fechaCreacion: Date;
-            //     publico: boolean;
-            //     participantes: {
-            //         usuarioId: number | null;
-            //         chatId: number | null;
-            //         usuario: {
-            //             nombreUsuario: string | null;
-            //         };
-            //     }[];
-            // }
-
             return NextResponse.json<GuardiaChatUsuario[]>(chatsPublicos)
         }
 
+    } catch (error) {
+        return NextResponse.json(
+            { error: error },
+            { status: 500 }
+        )
+    } finally {
+        await prisma.$disconnect();
+    }
+}
+
+export async function POST(request: Request) {
+    try {
+        const cuerpoPeticion = await request.json();
+        const datosRequeridos = [
+            { key: "usuario", error: "usuario es un dato obligatorio" },
+            { key: "participantes", error: "participantes es un dato obligatorio" },
+            { key: "nombreChat", error: "nombreChat es un dato obligatorio" }
+        ];
+        // validación de la existencia de los datos necesarios
+        for (let dato of datosRequeridos) {
+            if (!cuerpoPeticion[dato.key]) return NextResponse.json({ error: dato.error }, { status: 400 });
+        }
+        if (!Array.isArray(cuerpoPeticion.participantes) || cuerpoPeticion.participantes.length < 1) {
+            return NextResponse.json(
+                { error: "participantes debe ser un array de longitud superior a 0" },
+                { status: 400 }
+            );
+        }
+        const participantes: string[] = cuerpoPeticion.participantes;
+        let participantesIds: number[] = [];
+        const nombreChat: string = cuerpoPeticion.nombreChat;
+        // validación de existencia de usuario en bbdd
+        const usuarioExiste = await prisma.usuario.findUnique({
+            where: {
+                nombreUsuario: cuerpoPeticion.usuario
+            }
+        })
+        if (!usuarioExiste) return NextResponse.json({ error: "usuario no encontrado" }, { status: 404 });
+        // añadimos el id del usuario al array con ids
+        participantesIds.push(usuarioExiste.id);
+        // validación de existencia de los usuarios en bbdd del array de participantes
+        for (let participante of participantes) {
+            let participanteExiste = await prisma.usuario.findUnique({
+                where: {
+                    nombreUsuario: participante
+                }
+            })
+            if (!participanteExiste) return NextResponse.json({ error: "participante no encontrado" }, { status: 404 });
+            if (!participantesIds.includes(participanteExiste.id)) participantesIds.push(participanteExiste.id);
+        }
+        // creación del nuevo chat
+        const nuevoChat = await prisma.chats.create({
+            data: {
+                nombre: nombreChat,
+                participantes: {
+                    create: (participantesIds.map(usuarioId => ({
+                        usuario: {
+                            connect: { id: usuarioId }
+                        }
+                    })))
+                }
+            }
+        })
+        return NextResponse.json({ msg: nuevoChat }, { status: 201 });
     } catch (error) {
         return NextResponse.json(
             { error: error },
