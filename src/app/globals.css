@@ -12,7 +12,6 @@
   --font-mono: var(--font-geist-mono);
   --color-gray-blue: #f0f4f8;
   --color-dark-gray-blue: #e0e7ff;
-  --color-border-gray-blue: #94a3b8;
 }
 
 @media (prefers-color-scheme: dark) {
