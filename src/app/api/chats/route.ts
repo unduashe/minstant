@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { GuardiaChatEspecifico, GuardiaChatUsuario, GuardiaMensajeChatEspecifico } from "../../../../lib/guardiasTipo";
-import { connect } from "socket.io-client";
+import { GuardiaChatEspecifico, GuardiaChatUsuario, GuardiaMensajeChatEspecifico, PeticionCrearChat } from "../../../../lib/guardiasTipo";
+import { CuerpoChatEsquema } from "../../../../lib/esquemas";
 
 const prisma = new PrismaClient();
 
@@ -117,21 +117,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const cuerpoPeticion = await request.json();
-        const datosRequeridos = [
-            { key: "usuario", error: "usuario es un dato obligatorio" },
-            { key: "participantes", error: "participantes es un dato obligatorio" },
-            { key: "nombreChat", error: "nombreChat es un dato obligatorio" }
-        ];
-        // validación de la existencia de los datos necesarios
-        for (let dato of datosRequeridos) {
-            if (!cuerpoPeticion[dato.key]) return NextResponse.json({ error: dato.error }, { status: 400 });
-        }
-        if (!Array.isArray(cuerpoPeticion.participantes) || cuerpoPeticion.participantes.length < 1) {
-            return NextResponse.json(
-                { error: "participantes debe ser un array de longitud superior a 0" },
-                { status: 400 }
-            );
+        const cuerpoPeticion: PeticionCrearChat = await request.json();
+        const validacionCuerpoPeticion = CuerpoChatEsquema.safeParse(cuerpoPeticion);
+        if (!validacionCuerpoPeticion.success) {
+            return NextResponse.json({ error: validacionCuerpoPeticion.error }, { status: 400 });
         }
         const participantes: string[] = cuerpoPeticion.participantes;
         let participantesIds: number[] = [];
@@ -171,7 +160,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ msg: nuevoChat }, { status: 201 });
     } catch (error) {
         return NextResponse.json(
-            { error: error },
+            { error: "Error interno del servidor" },
             { status: 500 }
         )
     } finally {

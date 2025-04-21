@@ -47,3 +47,9 @@ export interface GuardiaChatParticipantes {
         nombreUsuario: string | null;
     };
 }
+
+export interface PeticionCrearChat {
+    usuario: string;
+    participantes: string[];
+    nombreChat: string;
+}
