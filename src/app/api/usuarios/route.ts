@@ -1,9 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { hash } from "bcryptjs";
+import { CreacionUsuarioEsquema } from "../../../../lib/esquemas";
 
 const prisma = new PrismaClient()
 
-export async function GET(request:Request) {
+export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const usuarioParam = searchParams.get('usuario');
@@ -51,7 +53,7 @@ export async function GET(request:Request) {
                 email: true
             }
         });
-        if (!usuarioEspecifico) return NextResponse.json({error: 'usuario no encontrado'}, {status: 404});
+        if (!usuarioEspecifico) return NextResponse.json({ error: 'usuario no encontrado' }, { status: 404 });
         interface GuardiaUsuarioEspecifico {
             id: number,
             nombreUsuario: string,
@@ -60,41 +62,55 @@ export async function GET(request:Request) {
         return NextResponse.json<GuardiaUsuarioEspecifico>(usuarioEspecifico);
     } catch (error) {
         return NextResponse.json(
-            {error: 'Error al obtener usuarios'},
-            {status: 500}
+            { error: 'Error al obtener usuarios' },
+            { status: 500 }
         )
     } finally {
         await prisma.$disconnect();
     }
 }
 
-export async function POST(request:Request) {
+export async function POST(request: Request) {
     try {
-        const datosPeticion = await request.json()
-        const nombreUsuario = datosPeticion.nombreUsuario
-        if (!nombreUsuario || typeof nombreUsuario !== "string") return NextResponse.json(
-            {error: 'nombreUsuario es un dato obligatorio y debe ser un elemento de texto'},
-            {status: 400}
-        );
+        const datosPeticion = await request.json();
+        // validación de la información recibida con zod
+        const validacionCabeceraPeticion = CreacionUsuarioEsquema.safeParse(datosPeticion);
+        if (!validacionCabeceraPeticion.success) {
+            return NextResponse.json({ error: validacionCabeceraPeticion.error }, { status: 400 });
+        }
+        const {nombreUsuario, email, contrasena} = datosPeticion
+        // validación de que el usuario no este repetido
         const usuarioExiste = await prisma.usuario.findUnique({
             where: {
                 nombreUsuario: nombreUsuario
             }
         });
         if (usuarioExiste) return NextResponse.json(
-            {error: 'usuario ya existe'},
-            {status: 400}
+            { error: 'usuario ya existe' },
+            { status: 400 }
         );
-        const result = await prisma.usuario.create({
+        // hasheo de contraseña para guardarla encriptada
+        const contrasenaHasheada = await hash(contrasena, 12)
+        // creación del usuario
+        const resultado = await prisma.usuario.create({
             data: {
-                nombreUsuario: nombreUsuario
+                nombreUsuario: nombreUsuario,
+                contrasena: contrasenaHasheada,
+                email: email || null
             }
         })
-        return NextResponse.json({msg: `usuario ${nombreUsuario} creado`, status: 201})
+
+        const respuesta = {
+            id: resultado.id,
+            nombreUsuario: resultado.nombreUsuario,
+            email: resultado.email
+        }
+        return NextResponse.json({ msg: `usuario ${nombreUsuario} creado`,  "usuario": respuesta}, {status: 201})
+
     } catch (error) {
         return NextResponse.json(
-            {error: 'Error al agregar usuario'},
-            {status: 500}
+            { error: 'Error al agregar usuario' },
+            { status: 500 }
         )
     } finally {
         await prisma.$disconnect();
