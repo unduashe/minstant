@@ -12,7 +12,7 @@ export async function GET(request: Request) {
         let usuariosPorPagina = Number(searchParams.get('usuariosPorPagina') || 10);
         if (usuariosPorPagina > 51) usuariosPorPagina = 50;
         if (!usuarioParam) {
-            const paginaParam = Number(searchParams.get('page') || 1);
+            const paginaParam = Number(searchParams.get('pagina') || 1);
             const [usuarios, pagina] = await Promise.all([
                 prisma.usuario.findMany({
                     select: {
