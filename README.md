@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📱 Aplicación de mensajería instantánea
+Una aplicación de mensajería instantánea donde puedes enviar y leer mensajes tanto si estás logado como si no, dependiendo de los chats a los que accedas.
 
-## Getting Started
+# 🚀 Características
+- 💬 **Mensajería en tiempo real** gracias a WebSockets.
+- 🚫 **Filtro de mensajes tóxicos** con la API de Perspective.
+- 🔒 **Control de privacidad de chats:** públicos (acceso libre) y privados (solo participantes).
 
-First, run the development server:
+## 🛠 Tecnologías utilizadas
+- **Front-end**: Next.js, Tailwind CSS.
+- **Backend**: Node.js, Express, Prisma.  
+- **Base de datos**: PostgreSQL.
+- **Autenticación**: NextAuth.
+- **Encriptado de contraseñas**: bcrypt.
+- **Filtro de contenido**: Perspective API.
+- **Control de versiones**: GIT y GitHub.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📋 Funcionalidades pendientes
+- 🔐 **Autenticación** en los endpoints aplicando NextAuth.
+- 🔐 **Signup y login** en el front que consuman los endpoints de autenticación.
+- 🛎 **Notificaciones** usando una tabla específica en la base de datos.
+- 📱 **Diseño responsivo**, adaptable a móviles y tablets.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📗 Pasos a seguir para iniciar/configurar el proyecto
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**1- Clona el repositorio**
 
-## Learn More
+    git clone https://github.com/unduashe/minstant.git
+    cd minstant
 
-To learn more about Next.js, take a look at the following resources:
+**2- Instala las dependencias necesarias si no las tienes**
+    
+    npm install
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Instala estas librerías si no las tienes:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    npm install express                                                           # servidor de WebSockets
+    npm install --save-dev tsx                                                    # ejecutar TypeScript en Node
+    npm install next-auth @next-auth/prisma-adapter bcryptjs @types/bcryptjs      # Autenticación y encriptado
+    npm install zod                                                               # validación de esquemas
+    
 
-## Deploy on Vercel
+**3- Crea el archivo .env en la raíz del proyecto con las siguientes variables**:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    NEXTAUTH_SECRET="tu_clave_secreta"
+    NEXTAUTH_URL="http://localhost:3000"
+    NEXTJS_API_URL="http://localhost:3000"
+    API_KEY_PERSPECTIVE="tu_api_key_perspective"
+    DATABASE_URL="postgres://usuario:contraseña@localhost:5432/tu_bd"
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**4- Crea la base de datos y realiza las migraciones**
+
+  1. Instala tu motor de base de datos (por ejemplo PostgreSQL).
+  2. Asegúrate de que la variable `DATABASE_URL` apunte a tu BD.
+  3. Ejecuta:
+
+    npx prisma migrate dev --name init
+
+**5- Lanza el proyecto**
+
+En dos terminales diferentes:
+
+    npm run dev:next    # front-end (Next.js)
+    npm run dev         # servidor de WebSockets
+
+🎉 ¡¡Ya tienes el proyecto funcionando, ya puedes enviar y recibir mensajes de forma instantánea!!
