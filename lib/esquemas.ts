@@ -10,7 +10,6 @@ export const MensajeEsquema = z.object({
 })
 
 export const CuerpoChatEsquema = z.object({
-    usuario: z.string().min(1, 'usuario es un dato obligatorio'),
     participantes: z.array(z.string()).min(1, 'participantes debe ser aun arreglo con más de un dato'),
     nombreChat: z.string().min(1).refine(value => value.trim().length > 0, {
         message: 'El nombre del chat no puede contener solo espacios'
