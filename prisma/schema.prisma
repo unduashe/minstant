@@ -46,6 +46,7 @@ model Mensajes {
   editado Boolean @default(false)
   eliminado Boolean @default(false)
   contenidoOriginal String?
+  metadatos Json? // {nombreUsuarioAnonimo?: string, ip?: string}
   // relación con usuario
   autorId Int
   autor Usuario @relation(fields: [autorId], references: [id])
