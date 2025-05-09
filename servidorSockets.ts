@@ -10,7 +10,8 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
         origin: "http://localhost:3000", //process.env.NEXTJS_API_URL
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
@@ -28,11 +29,15 @@ io.on('connection', (socket) => {
     // evento para enviar mensaje y notificación
     socket.on('mensaje', async (datos) => {
         try {
-            const { chatId, usuario, contenido } = datos;
-            const respuesta = await fetch(`http://localhost:3000/api/mensajes?id=${chatId}&usuario=${usuario}`, {
+            // const { chatId, usuario, contenido } = datos;
+            // const respuesta = await fetch(`http://localhost:3000/api/mensajes?id=${chatId}&usuario=${usuario}`, {
+            const cookies = socket.handshake.headers.cookie
+            const { chatId, contenido } = datos;
+            const respuesta = await fetch(`http://localhost:3000/api/mensajes?id=${chatId}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Cookie': cookies || ''
                 },
                 body: JSON.stringify({
                     contenido: contenido
@@ -40,7 +45,7 @@ io.on('connection', (socket) => {
             })
             const nuevoMensaje = await respuesta.json();
 
-            io.emit('mensajeEnviado', nuevoMensaje);
+            // io.emit('mensajeEnviado', nuevoMensaje);
             
             // evento para enviar notificación
             io.to(chatId).emit('mensajeServidor', nuevoMensaje);

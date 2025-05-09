@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import { MensajeEsquema } from '../../../../lib/esquemas';
 import { moderadorContenido } from '../../../../lib/moderacion';
 import { GuardiaMensajeChatEspecifico } from '../../../../lib/guardiasTipo';
-import { promise } from 'zod';
+import { getServerSession } from 'next-auth';
+import { authOptions } from "../../../../lib/auth";
 
 const prisma = new PrismaClient();
 
@@ -12,14 +13,16 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const paginaParam = Number(searchParams.get('pagina')) || 1;
         const chatIdParam = Number(searchParams.get('id'));
-        const usuarioParam = searchParams.get('usuario');
-        let skipParam;
-        if (paginaParam <= 1) {
-            skipParam = Number(searchParams.get('skip') || 30);
-        }
-        else {
-            skipParam = 30
-        }
+        // const usuarioParam = searchParams.get('usuario');
+        const session = await getServerSession(authOptions);
+        const usuarioId = Number(session?.user.id)
+        let skipParam = 30;
+        // if (paginaParam <= 1) {
+        //     skipParam = Number(searchParams.get('skip') || 30);
+        // }
+        // else {
+        //     skipParam = 30
+        // }
 
         const chatExiste = await prisma.chats.findUnique({
             where: {
@@ -30,6 +33,7 @@ export async function GET(request: Request) {
                     include: {
                         usuario: {
                             select: {
+                                id: true,
                                 nombreUsuario: true
                             }
                         }
@@ -38,7 +42,7 @@ export async function GET(request: Request) {
             }
         })
 
-        const participante = chatExiste?.participantes.some(participante => participante.usuario.nombreUsuario === usuarioParam);
+        const participante = chatExiste?.participantes.some(participante => participante.usuario.id === usuarioId);
         const publico = chatExiste?.publico;
         // validación de que hayamos obtenido el chat y de que el usuario pueda obtener información del chat
         if (!chatExiste) return NextResponse.json({ error: "El chat solicitado no existe" }, { status: 404 });
@@ -47,7 +51,7 @@ export async function GET(request: Request) {
         const [mensajes, pagina] = await Promise.all([
             prisma.mensajes.findMany({
                 orderBy: {
-                    id: 'desc'
+                    fechaEnvio: 'desc'
                 },
                 include: {
                     autor: {
@@ -57,7 +61,7 @@ export async function GET(request: Request) {
                     }
                 },
                 skip: (paginaParam - 1) * skipParam,
-                take: 30,
+                take: skipParam,
             }),
             prisma.mensajes.count({
                 where: {
@@ -102,26 +106,21 @@ export async function POST(request: Request) {
     try {
         // declaración de variables de datos a obtener
         const { searchParams } = new URL(request.url);
+        const session = await getServerSession(authOptions);
+        const usuarioId = Number(session?.user.id);
         const cuerpoPeticion = await request.json();
         // validación del cuerpo de la petición
         const validacionCuerpoPeticion = MensajeEsquema.safeParse(cuerpoPeticion);
         if (!validacionCuerpoPeticion.success) {
             return NextResponse.json({ error: validacionCuerpoPeticion.error }, { status: 400 });
         }
-        // validación de obtención de id
+        // validación de obtención de id de chat
         const idParam = Number(searchParams.get('id'));
-        const usuarioParam = searchParams.get('usuario') || undefined;
         if (!idParam || isNaN(idParam)) return NextResponse.json({ error: 'Es necesario indicar el parámetro id' }, { status: 400 });
-        // validación de que la información recibida tiene el formato correcto
-        interface GuardiaMensaje {
-            contenido: string,
-            chatId: number,
-            usuario?: string | undefined
-        }
-        const mensaje: GuardiaMensaje = {
+        const mensaje = {
             contenido: validacionCuerpoPeticion.data.contenido,
             chatId: idParam,
-            usuario: usuarioParam
+            usuario: usuarioId
         }
         // validación de que el chat en el que se está intentando escribir extiste
         const chat = await prisma.chats.findUnique({
@@ -131,64 +130,75 @@ export async function POST(request: Request) {
             }
         })
         if (!chat) return NextResponse.json({ error: 'Chat no encontrado' }, { status: 404 });
-        let autorId: number;
-        let usuario;
-        // validación de que el usuario informado que intenta agregar información existe
-        if (mensaje.usuario && mensaje.usuario != 'null' || mensaje.usuario && mensaje.usuario != 'undefined') {
-            usuario = await prisma.usuario.findUnique({
-                where: { nombreUsuario: mensaje.usuario }
-            })
-            if (!usuario) return NextResponse.json(
-                { error: 'El usuario con el que estás intentando enviar el mensaje no se encuentra, prueba a logarte nuevamente' },
-                { status: 404 }
-            )
-
-        }
-        // validación de que si no se informa usuario se crea uno, independientemente se asigna el autorId
-        if (usuario) {
-            autorId = usuario.id
-        } else {
-            const nombreAnon = `anon${crypto.randomUUID().slice(0, 8)}`;
-            const nuevoUsuario = await prisma.usuario.create({
-                data: {
-                    nombreUsuario: nombreAnon
-                }
-            })
-            autorId = nuevoUsuario.id
-        }
-        // validación de que el usuario puede escribir en el chat
-        const esParticipante = chat.participantes.some((participante) => participante.usuarioId === autorId);
-        if (!esParticipante && !chat.publico) return NextResponse.json({ error: 'No tienes acceso para participar en el chat' }, { status: 403 });
-        // agregar participante al chat público si no existía
-        if (!esParticipante && chat.publico) {
-            await prisma.usuarioChats.create({
-                data: {
-                    usuarioId: autorId,
-                    chatId: mensaje.chatId
-                }
-            })
-        }
         // validación de que el contenido del mensaje no sea tóxico
         const resultadoModeracion = await moderadorContenido(mensaje.contenido);
         if (Object.values(resultadoModeracion).includes(true)) return NextResponse.json(
             { error: 'El contenido del mensaje es inapropiado' },
             { status: 422 }
-        )
-        // creación del mensaje
-        const nuevoMensaje = await prisma.mensajes.create({
-            data: {
-                contenido: mensaje.contenido,
-                contenidoOriginal: mensaje.contenido,
-                chatId: mensaje.chatId,
-                autorId: autorId
-            },
-            include: {
-                autor: {
-                    select: { nombreUsuario: true }
-                }
-            }
-        });
+        );
 
+        let autorId: number;
+        let usuario;
+        let nuevoMensaje
+        // creación de mensaje según si el usuario es anonimo o esta logado
+        if (usuarioId) {
+            // validación de existencia de usuario
+            usuario = await prisma.usuario.findUnique({
+                where: { id: mensaje.usuario }
+            })
+            if (!usuario) return NextResponse.json(
+                { error: 'El usuario con el que estás intentando enviar el mensaje no se encuentra, prueba a logarte nuevamente' },
+                { status: 404 }
+            )
+            autorId = usuario.id
+            // validación de que pueda escribir en el chat
+            const esParticipante = chat.participantes.some((participante) => participante.usuarioId === autorId);
+            if (!esParticipante && !chat.publico) return NextResponse.json({ error: 'No tienes acceso para participar en el chat' }, { status: 403 });
+            // creación de la entrada en bbdd
+            nuevoMensaje = await prisma.mensajes.create({
+                data: {
+                    contenido: mensaje.contenido,
+                    contenidoOriginal: mensaje.contenido,
+                    chatId: mensaje.chatId,
+                    autorId: autorId
+                },
+                include: {
+                    autor: {
+                        select: { nombreUsuario: true }
+                    }
+                }
+            });
+        } else {
+            // si no está logado hacemos uso del id reservado para usuarios anonimos, 0
+            autorId = 0
+            // validación de que pueda escribir en el chat
+            if (!chat.publico) return NextResponse.json({ error: 'No tienes acceso para participar en el chat' }, { status: 403 });
+            // creación de nombre aleatorio
+            const nombreAnon = `anon${crypto.randomUUID().slice(0, 8)}`;
+            try {
+                // obtención de ip A REVISAR y creación de mensaje con metadatos
+                const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+                nuevoMensaje = await prisma.mensajes.create({
+                    data: {
+                        contenido: mensaje.contenido,
+                        contenidoOriginal: mensaje.contenido,
+                        chatId: mensaje.chatId,
+                        autorId: autorId,
+                        metadatos: {
+                            nombreUsuarioAnonimo: nombreAnon,
+                            ip: ip
+                        }
+                    },
+                    include: {
+                        autor: {
+                            select: { nombreUsuario: true }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.log(error)
+            }
+        }
         return NextResponse.json({ msg: nuevoMensaje }, { status: 201 })
 
     } catch (error) {

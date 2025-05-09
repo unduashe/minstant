@@ -85,7 +85,13 @@ function ChatPage() {
     // montar el webSocket
     useEffect(() => {
         if (!socketRef.current) {
-            socketRef.current = io("http://localhost:3001");
+            socketRef.current = io("http://localhost:3001", {
+                transports: ['websocket'],
+                extraHeaders: {
+                    "Access-Control-Allow-Credentials": "true"
+                },
+                withCredentials: true
+            } as any);
         }
         const socket = socketRef.current;
         socket.emit("unirseChat", params.id);
@@ -97,7 +103,8 @@ function ChatPage() {
             socketRef.current.emit("unirseChat", chatId);
         });
     }, [chatsIdUsuario]);
-    // enviar mensaje a través de webSocket
+
+    // obtener mensaje a través de webSocket
     useEffect(() => {
         const socket = socketRef.current;
         socket.on(
@@ -118,7 +125,7 @@ function ChatPage() {
         };
     }, [chat]);
 
-    // obtener mensaje a través de webSocket
+    // enviar mensaje a través de webSocket
     const manejarEnvioMensaje = async (e: React.FormEvent) => {
         await envioMensaje(e);
         contenedorSueltoRef.current = false;
@@ -128,7 +135,7 @@ function ChatPage() {
         if (mensaje.trim()) {
             socketRef.current.emit("mensaje", {
                 chatId: params.id,
-                usuario: usuario,
+                // usuario: usuario,
                 contenido: mensaje,
             });
             setMensaje("");
@@ -291,7 +298,9 @@ function ChatPage() {
                                     className="w-min px-3 ml-1 text-sm border-t-2 border-l-2 border-r-2 border-gray-300 
                                 rounded-t-md bg-white "
                                 >
-                                    {mensaje.autor.nombreUsuario}
+                                    {mensaje.autor.nombreUsuario === "anonimo"
+                                        ? mensaje.metadatos?.nombreUsuarioAnonimo
+                                        : mensaje.autor.nombreUsuario}
                                 </span>
                                 <div className="p-1 px-3 pb-0 border-2 border-gray-300 rounded-md bg-white">
                                     <span>{mensaje.contenido}</span>

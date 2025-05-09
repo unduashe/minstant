@@ -29,6 +29,7 @@ export interface GuardiaMensajeChatEspecifico {
     editado: boolean,
     eliminado: boolean,
     contenidoOriginal: string | null,
+    metadatos?: {nombreUsuarioAnonimo?: string, ip?: string} | null,
     autor: { nombreUsuario: string },
 }
 

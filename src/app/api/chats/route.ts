@@ -64,6 +64,11 @@ export async function GET(request: Request) {
             const tieneAcceso = chat.publico || chat.participantes.some((participante) => participante.usuario.id === usuarioId);
             if (!tieneAcceso) return NextResponse.json({ error: 'No tienes acceso al chat' }, { status: 403 });
             const respuestaMensajes = chat.mensajes.map((mensaje) => {
+                const metadatosParseados = mensaje.metadatos
+                    ? (typeof mensaje.metadatos === 'object'
+                        ? mensaje.metadatos
+                        : JSON.parse(String(mensaje.metadatos)))
+                    : null;
                 const respuestaMensaje: GuardiaMensajeChatEspecifico = {
                     id: mensaje.id,
                     contenido: mensaje.contenido,
@@ -71,6 +76,7 @@ export async function GET(request: Request) {
                     editado: mensaje.editado,
                     eliminado: mensaje.eliminado,
                     contenidoOriginal: mensaje.contenidoOriginal,
+                    metadatos: metadatosParseados,
                     autor: mensaje.autor
                 };
                 return respuestaMensaje
@@ -154,8 +160,8 @@ export async function POST(request: Request) {
         const usuarioId = Number(session?.user?.id);
         const validacionCuerpoPeticion = CuerpoChatEsquema.safeParse(cuerpoPeticion);
         if (!usuarioId) return NextResponse.json(
-            {error: 'Debes estar logado para realizar esta acción, por favor logate con tu usuario'},
-            {status: 403}
+            { error: 'Debes estar logado para realizar esta acción, por favor logate con tu usuario' },
+            { status: 403 }
         );
         if (!validacionCuerpoPeticion.success) {
             return NextResponse.json({ error: validacionCuerpoPeticion.error }, { status: 400 });
