@@ -262,7 +262,7 @@ function ChatPage() {
             className="flex flex-col overflow-y-auto justify-between w-full min-h-screen border-l-1 border-l-blue-200 bg-gray-blue"
             onScroll={manejarScroll}
         >
-            <div className="sticky top-0 w-full py-1 bg-dark-gray-blue shadow-lg shadow-gray-300">
+            <div className="sticky top-0 w-full py-1 bg-dark-gray-blue shadow-lg shadow-gray-300 z-10">
                 <h1 className="flex flex-col w-90/100 mx-auto">
                     <span className="text-lg uppercase font-bold">{chat.nombre}</span>
                     <span>
@@ -315,7 +315,7 @@ function ChatPage() {
                 {/* Inicio formulario mensaje mensaje */}
 
                 <div
-                    className="flex sticky bottom-0 justify-center w-full py-2 mb-0 bg-dark-gray-blue 
+                    className="flex sticky bottom-0 justify-center w-full py-2 mb-0 bg-dark-gray-blue z-10
                 drop-shadow-[0_-4px_6px_rgba(209,213,220,1)]"
                 >
                     <form
