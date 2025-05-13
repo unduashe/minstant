@@ -53,7 +53,7 @@ export async function GET(request: Request) {
                 email: true
             }
         });
-        if (!usuarioEspecifico) return NextResponse.json({ error: 'usuario no encontrado' }, { status: 404 });
+        if (!usuarioEspecifico) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         interface GuardiaUsuarioEspecifico {
             id: number,
             nombreUsuario: string,
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
             }
         });
         if (usuarioExiste) return NextResponse.json(
-            { error: 'usuario ya existe' },
+            { error: 'Usuario ya existe' },
             { status: 400 }
         );
         // hasheo de contraseña para guardarla encriptada

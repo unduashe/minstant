@@ -27,7 +27,7 @@ export const CreacionUsuarioEsquema = z.object({
             if (value === undefined || value === null || value.trim() === "") return true;
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
         }, {
-            message: 'email no tiene un formato válido'
+            message: 'Email no tiene un formato válido'
         }),
     contrasena: z.string().min(6).refine(value => value.trim().length > 5, {
         message: 'contrasena debe tener al menos 6 caracteres'
